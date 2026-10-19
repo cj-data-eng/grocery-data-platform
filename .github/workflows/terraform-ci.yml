@@ -1,0 +1,31 @@
+name: terraform-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read # permissions: contents: read gives the workflow the minimum access it needs, in the same least-privilege spirit as the AWS side.
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.6
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive # fmt -check fails the build if anything isn’t formatted, rather than silently fixing it.
+        working-directory: infra
+
+      - name: Validate bootstrap
+        run: terraform init -backend=false -input=false && terraform validate # -backend=false lets validate run without touching AWS, so this job needs no credentials at all.
+        working-directory: infra/bootstrap
+
+      - name: Validate dev
+        run: terraform init -backend=false -input=false && terraform validate
+        working-directory: infra/envs/dev
