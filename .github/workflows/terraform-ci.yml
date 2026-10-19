@@ -29,3 +29,30 @@ jobs:
       - name: Validate dev
         run: terraform init -backend=false -input=false && terraform validate
         working-directory: infra/envs/dev
+
+  plan-dev:
+    needs: validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # id-token: write lets the job request GitHub’s identity token. It’s a permission on this job only, not on the whole workflow.
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.6
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::511454199223:role/gh-actions-terraform-plan
+          aws-region: eu-west-2
+
+      - name: Terraform init
+        run: terraform init -input=false
+        working-directory: infra/envs/dev
+
+      - name: Terraform plan
+        run: terraform plan -input=false -lock=false # -lock=false means plan only reads state and never writes to the bucket, which keeps the role read-only. That’s safe because a plan changes nothing.
+        working-directory: infra/envs/dev
