@@ -56,3 +56,31 @@ jobs:
       - name: Terraform plan
         run: terraform plan -input=false -lock=false # -lock=false means plan only reads state and never writes to the bucket, which keeps the role read-only. That’s safe because a plan changes nothing.
         working-directory: infra/envs/dev
+
+  apply-dev:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: terraform-apply-dev
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.6
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::511454199223:role/gh-actions-terraform-apply
+          aws-region: eu-west-2
+
+      - name: Terraform init
+        run: terraform init -input=false
+        working-directory: infra/envs/dev
+
+      - name: Terraform apply
+        run: terraform apply -input=false -auto-approve
+        working-directory: infra/envs/dev
