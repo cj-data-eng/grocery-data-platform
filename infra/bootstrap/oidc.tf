@@ -58,3 +58,42 @@ resource "aws_iam_role_policy_attachment" "plan_read_only" {
 output "plan_role_arn" {
   value = aws_iam_role.plan.arn
 }
+
+
+data "aws_iam_policy_document" "apply_trust" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo_name}@${var.github_repo_id}:ref:refs/heads/main"]
+    }
+  }
+}
+
+resource "aws_iam_role" "apply" {
+  name               = "gh-actions-terraform-apply"
+  assume_role_policy = data.aws_iam_policy_document.apply_trust.json
+}
+
+# Known technical debt: broad permissions for now. To be narrowed to least privilege once the platform's resources are settled.
+resource "aws_iam_role_policy_attachment" "apply_admin" {
+  role       = aws_iam_role.apply.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+output "apply_role_arn" {
+  value = aws_iam_role.apply.arn
+}
