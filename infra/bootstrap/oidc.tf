@@ -1,6 +1,19 @@
-variable "github_repo" {
+variable "github_owner" {
   type    = string
-  default = "cj-data-eng/grocery-data-platform"
+  default = "cj-data-eng"
+}
+
+variable "github_repo_name" {
+  type    = string
+  default = "grocery-data-platform"
+}
+
+variable "github_owner_id" {
+  type = string
+}
+
+variable "github_repo_id" {
+  type = string
 }
 
 # The provider tells AWS to trust tokens issued by GitHub.
@@ -27,7 +40,7 @@ data "aws_iam_policy_document" "plan_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub" # sub condition is the security control. Only workflows running for a pull request in your repo can assume this role. Without it, any GitHub repo could.
-      values   = ["repo:${var.github_repo}:pull_request"]
+      values   = ["repo:${var.github_owner}@${var.github_owner_id}/${var.github_repo_name}@${var.github_repo_id}:pull_request"]
     }
   }
 }
