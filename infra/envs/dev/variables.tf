@@ -16,3 +16,21 @@ variable "force_destroy" {
   type    = bool
   default = false
 }
+
+variable "github_owner" {
+  type    = string
+  default = "cj-data-eng"
+}
+
+variable "github_repo_name" {
+  type    = string
+  default = "grocery-data-platform"
+}
+
+variable "github_owner_id" {
+  type = string
+}
+
+variable "github_repo_id" {
+  type = string
+}
