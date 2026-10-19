@@ -5,3 +5,9 @@ crash.log
 *.tfvars.local
 __pycache__/
 .venv/
+data/
+.coverage
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
