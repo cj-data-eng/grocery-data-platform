@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: product_affinity
+    description: >
+      Market basket analysis. One row per pair of products bought in the same basket
+      (product_a sorts before product_b), over all loaded days.
+    columns:
+      - name: product_a
+        data_tests:
+          - not_null
+      - name: product_b
+        data_tests:
+          - not_null
+      - name: baskets_together
+        description: Number of baskets containing both products.
+      - name: support
+        description: Share of all baskets that contain both products.
+      - name: confidence_a_to_b
+        description: Of the baskets containing product A, the share that also contain product B.
+      - name: lift
+        description: >
+          How much more often the pair is bought together than chance would predict.
+          1 means no relationship, above 1 means bought together more than expected.
