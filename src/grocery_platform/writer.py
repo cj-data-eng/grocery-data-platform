@@ -14,7 +14,7 @@ SCHEMA = pa.schema(
         ("basket_id", pa.string()),
         ("store_id", pa.string()),
         ("customer_id", pa.string()),
-        ("purchased_at", pa.timestamp("us", tz="UTC")),
+        ("purchased_at", pa.timestamp("ms", tz="UTC")),
         ("product_id", pa.string()),
         ("product_name", pa.string()),
         ("category", pa.string()),
