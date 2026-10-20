@@ -1,0 +1,50 @@
+name: ingest
+
+on:
+  schedule:
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Date to generate (YYYY-MM-DD). Defaults to yesterday."
+        required: false
+      baskets:
+        description: "Number of baskets"
+        required: false
+        default: "5000"
+
+permissions:
+  contents: read
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      RAW_BUCKET: grocery-data-platform-dev-raw-511454199223
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install .
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::511454199223:role/grocery-data-platform-dev-gh-ingest
+          aws-region: eu-west-2
+
+      - name: Generate and upload
+        env:
+          INPUT_DATE: ${{ inputs.date }}
+          INPUT_BASKETS: ${{ inputs.baskets }}
+        run: |
+          DAY="${INPUT_DATE:-$(date -u -d yesterday +%F)}"
+          grocery-platform --date "$DAY" --baskets "${INPUT_BASKETS:-5000}" --out data --bucket "$RAW_BUCKET"

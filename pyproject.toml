@@ -9,12 +9,14 @@ description = "Synthetic grocery retail data generation and ingestion"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "boto3>=1.35",
     "faker>=30",
     "pyarrow>=17",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "moto[s3]>=5",
     "pytest>=8",
     "pytest-cov>=5",
     "ruff>=0.6",
@@ -43,5 +45,5 @@ strict = true
 files = ["src"]
 
 [[tool.mypy.overrides]]
-module = ["pyarrow.*"]
+module = ["pyarrow.*", "boto3.*", "botocore.*"]
 ignore_missing_imports = true
