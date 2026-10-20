@@ -39,6 +39,20 @@ CATALOGUE: tuple[tuple[str, str, str, int], ...] = (
 )
 
 # Shopping hours 08:00-21:59, weighted towards lunchtime and after work.
+PRODUCTS_BY_ID = {product[0]: product for product in CATALOGUE}
+
+# (anchor product, companion product, chance the companion is added to a basket with the anchor).
+# These give the synthetic data some real "bought together" patterns for analysis to find.
+AFFINITIES: tuple[tuple[str, str, float], ...] = (
+    ("P019", "P021", 0.60),  # penne pasta -> chopped tomatoes
+    ("P007", "P003", 0.45),  # white bread -> salted butter
+    ("P025", "P001", 0.50),  # tea bags -> whole milk
+    ("P016", "P014", 0.40),  # chicken breast -> potatoes
+    ("P017", "P021", 0.35),  # beef mince -> chopped tomatoes
+)
+
+MAX_LINES_PER_BASKET = 12
+
 SHOPPING_HOURS: tuple[int, ...] = tuple(range(8, 22))
 HOUR_WEIGHTS: tuple[int, ...] = (3, 4, 6, 8, 6, 4, 4, 5, 8, 10, 9, 6, 3, 2)
 
@@ -77,7 +91,19 @@ def generate_baskets(
             day, time(hour, rng.randint(0, 59), rng.randint(0, 59)), tzinfo=UTC
         )
 
-        for product_id, name, category, base_price in rng.sample(CATALOGUE, rng.randint(1, 12)):
+        chosen = rng.sample(CATALOGUE, rng.randint(1, MAX_LINES_PER_BASKET))
+        chosen_ids = {product[0] for product in chosen}
+        for anchor_id, companion_id, probability in AFFINITIES:
+            if (
+                anchor_id in chosen_ids
+                and companion_id not in chosen_ids
+                and len(chosen) < MAX_LINES_PER_BASKET
+                and rng.random() < probability
+            ):
+                chosen.append(PRODUCTS_BY_ID[companion_id])
+                chosen_ids.add(companion_id)
+
+        for product_id, name, category, base_price in chosen:
             on_promo = rng.random() < PROMO_CHANCE
             price = base_price * PROMO_PERCENT_OF_PRICE // 100 if on_promo else base_price
             yield BasketLine(

@@ -2,7 +2,7 @@ from datetime import UTC, date
 
 import pytest
 
-from grocery_platform.generator import CATALOGUE, generate_baskets
+from grocery_platform.generator import AFFINITIES, CATALOGUE, generate_baskets
 from grocery_platform.validation import split_valid
 
 DAY = date(2026, 10, 19)
@@ -69,3 +69,16 @@ def test_negative_baskets_rejected() -> None:
 def test_invalid_store_or_customer_counts_rejected() -> None:
     with pytest.raises(ValueError, match="at least 1"):
         list(generate_baskets(DAY, 1, n_stores=0))
+
+
+def test_companion_products_are_bought_together_more_than_chance() -> None:
+    baskets: dict[str, set[str]] = {}
+    for line in generate_baskets(DAY, 2000):
+        baskets.setdefault(line.basket_id, set()).add(line.product_id)
+
+    for anchor, companion, probability in AFFINITIES:
+        with_anchor = [items for items in baskets.values() if anchor in items]
+        share = sum(companion in items for items in with_anchor) / len(with_anchor)
+        base_rate = sum(companion in items for items in baskets.values()) / len(baskets)
+        assert share > base_rate, (anchor, companion, probability)
+        assert share > 0.3
