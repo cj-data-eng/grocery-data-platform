@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Raw synthetic grocery data landed in S3 by the ingestion package.
+    schema: grocery_data_platform_dev_raw
+    tables:
+      - name: basket_lines
+        description: One row per product line in a shopping basket. Partitioned by purchase_date.
+        columns:
+          - name: basket_id
+            data_tests:
+              - not_null
+          - name: product_id
+            data_tests:
+              - not_null
+          - name: purchase_date
+            data_tests:
+              - not_null

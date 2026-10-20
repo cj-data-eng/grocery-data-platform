@@ -1,0 +1,17 @@
+version: 2
+
+models:
+  - name: daily_sales
+    description: Sales per day, store and product category. One row per combination.
+    columns:
+      - name: purchase_date
+        data_tests:
+          - not_null
+      - name: store_id
+        data_tests:
+          - not_null
+      - name: category
+        data_tests:
+          - not_null
+      - name: revenue_gbp
+        description: Revenue in pounds, summed from line totals.

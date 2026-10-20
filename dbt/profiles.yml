@@ -1,0 +1,12 @@
+grocery_platform:
+  target: dev
+  outputs:
+    dev:
+      type: athena
+      region_name: eu-west-2
+      database: awsdatacatalog
+      schema: grocery_data_platform_dev_analytics
+      work_group: grocery-data-platform-dev
+      s3_staging_dir: s3://grocery-data-platform-dev-curated-511454199223/athena-results/
+      s3_data_dir: s3://grocery-data-platform-dev-curated-511454199223/dbt/
+      threads: 4
