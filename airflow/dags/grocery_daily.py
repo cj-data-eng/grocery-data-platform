@@ -92,23 +92,19 @@ def grocery_daily():
         )["QueryExecutionId"]
 
         for _ in range(60):
-            state = athena.get_query_execution(QueryExecutionId=query)[
-                "QueryExecution"
-            ]["Status"]["State"]
+            state = athena.get_query_execution(QueryExecutionId=query)["QueryExecution"]["Status"][
+                "State"
+            ]
             if state in ("SUCCEEDED", "FAILED", "CANCELLED"):
                 break
             time.sleep(2)
         if state != "SUCCEEDED":
             raise RuntimeError(f"Athena check query ended in state {state}")
 
-        row = athena.get_query_results(QueryExecutionId=query)["ResultSet"]["Rows"][1][
-            "Data"
-        ]
+        row = athena.get_query_results(QueryExecutionId=query)["ResultSet"]["Rows"][1]["Data"]
         rows, revenue = int(row[0]["VarCharValue"]), float(row[1]["VarCharValue"])
         if rows == 0 or revenue <= 0:
-            raise ValueError(
-                f"daily_sales has no sales for {day} (rows={rows}, revenue={revenue})"
-            )
+            raise ValueError(f"daily_sales has no sales for {day} (rows={rows}, revenue={revenue})")
         print(f"daily_sales for {day}: {rows} rows, revenue GBP {revenue:,.2f}")
 
     loaded_day = ingest("{{ params.date }}", "{{ params.baskets }}")
