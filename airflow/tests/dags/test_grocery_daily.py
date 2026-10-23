@@ -32,3 +32,9 @@ def test_dag_is_safe_by_default(dag_bag: DagBag) -> None:
     assert dag is not None
     assert dag.catchup is False
     assert dag.default_args["retries"] >= 1
+
+
+def test_failures_are_reported(dag_bag: DagBag) -> None:
+    dag = dag_bag.dags.get("grocery_daily")
+    assert dag is not None
+    assert callable(dag.default_args["on_failure_callback"])

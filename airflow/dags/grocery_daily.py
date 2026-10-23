@@ -1,6 +1,7 @@
 """Daily grocery pipeline: ingest one day of baskets, build dbt models, check the result."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import Param, dag, task
@@ -16,6 +17,26 @@ ATHENA_WORKGROUP = "grocery-data-platform-dev"
 REGION = "eu-west-2"
 
 
+def report_task_failure(context: dict[str, Any]) -> None:
+    """Tell New Relic when a task has failed for good (after its retries)."""
+    import sys
+
+    sys.path.insert(0, f"{REPO_DIR}/src")
+    from grocery_platform.observability import send_event
+
+    ti = context.get("ti") or context.get("task_instance")
+    send_event(
+        "GroceryTaskFailure",
+        {
+            "dag_id": getattr(ti, "dag_id", "unknown"),
+            "task_id": getattr(ti, "task_id", "unknown"),
+            "run_id": getattr(ti, "run_id", "unknown"),
+            "try_number": getattr(ti, "try_number", 0),
+            "run_source": "airflow",
+        },
+    )
+
+
 @dag(
     dag_id="grocery_daily",
     description="Ingest a day of baskets to S3, run dbt build on Athena, then check the output.",
@@ -23,7 +44,11 @@ REGION = "eu-west-2"
     start_date=datetime(2026, 10, 20),
     catchup=False,
     is_paused_upon_creation=True,
-    default_args={"retries": 2, "retry_delay": timedelta(minutes=2)},
+    default_args={
+        "retries": 2,
+        "retry_delay": timedelta(minutes=2),
+        "on_failure_callback": report_task_failure,
+    },
     params={
         "date": Param(
             "",
@@ -38,11 +63,14 @@ def grocery_daily():
     @task
     def ingest(date_param: str, baskets_param: str) -> str:
         """Generate the day's baskets, write Parquet, and upload it to the raw bucket."""
+        import os
         import sys
         from datetime import UTC, date
 
         sys.path.insert(0, f"{REPO_DIR}/src")
         from grocery_platform.cli import main
+
+        os.environ["RUN_SOURCE"] = "airflow"
 
         if date_param:
             day = date.fromisoformat(date_param).isoformat()

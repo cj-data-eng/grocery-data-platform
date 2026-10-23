@@ -52,3 +52,58 @@ def test_main_returns_1_when_upload_fails(tmp_path: Path) -> None:
         ["--date", "2026-10-19", "--baskets", "10", "--out", str(tmp_path), "--bucket", "nope"]
     )
     assert exit_code == 1
+
+
+def test_main_reports_a_success_event(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: list[tuple[str, dict[str, object]]] = []
+    monkeypatch.setattr(
+        "grocery_platform.cli.send_event", lambda name, attrs: sent.append((name, dict(attrs)))
+    )
+    monkeypatch.setenv("RUN_SOURCE", "test-suite")
+
+    assert main(["--date", "2026-10-19", "--baskets", "10", "--out", str(tmp_path)]) == 0
+
+    assert len(sent) == 1
+    name, event = sent[0]
+    assert name == "GroceryPipelineRun"
+    assert event["status"] == "success"
+    assert event["partition_date"] == "2026-10-19"
+    assert event["run_source"] == "test-suite"
+    assert isinstance(event["row_count"], int) and event["row_count"] > 0
+    assert "duration_s" in event
+
+
+@mock_aws
+def test_main_reports_a_failed_event_when_upload_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "grocery_platform.cli.send_event", lambda name, attrs: sent.append(dict(attrs))
+    )
+
+    exit_code = main(
+        ["--date", "2026-10-19", "--baskets", "10", "--out", str(tmp_path), "--bucket", "nope"]
+    )
+
+    assert exit_code == 1
+    assert sent[0]["status"] == "failed"
+    assert sent[0]["uploaded"] is True
+
+
+def test_main_reports_a_failed_event_when_the_run_crashes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sent: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        "grocery_platform.cli.send_event", lambda name, attrs: sent.append(dict(attrs))
+    )
+
+    def explode(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("disk on fire")
+
+    monkeypatch.setattr("grocery_platform.cli.write_partition", explode)
+
+    with pytest.raises(RuntimeError):
+        main(["--date", "2026-10-19", "--baskets", "10", "--out", str(tmp_path)])
+    assert sent[0]["status"] == "failed"
