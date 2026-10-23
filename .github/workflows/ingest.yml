@@ -45,6 +45,10 @@ jobs:
         env:
           INPUT_DATE: ${{ inputs.date }}
           INPUT_BASKETS: ${{ inputs.baskets }}
+          RUN_SOURCE: github-actions
+          NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          NEW_RELIC_ACCOUNT_ID: ${{ vars.NEW_RELIC_ACCOUNT_ID }}
+          NEW_RELIC_REGION: ${{ vars.NEW_RELIC_REGION }}
         run: |
           DAY="${INPUT_DATE:-$(date -u -d yesterday +%F)}"
           grocery-platform --date "$DAY" --baskets "${INPUT_BASKETS:-5000}" --out data --bucket "$RAW_BUCKET"
